@@ -43,3 +43,146 @@ jobs:
           echo "Validando que el proyecto se pueda construir"
           npm run build
 
+  build:
+    needs: validate
+    runs-on: [self-hosted, wls]
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v6
+        
+      - name: Configurar Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+        
+      - name: Instalar dependencias
+        run: |
+          echo "Instalando dependencias"
+          npm ci --prefer-offline
+
+      - name: Construir proyecto
+        run: |
+          echo "Generando aplicacion"
+          npm run build
+
+      - name: Verificar build
+        run: |
+          echo "Verificando build"
+          test -f dist/index.html
+          echo "Build exitoso"
+
+      - name: Guardar artefacto
+        uses: actions/upload-artifact@v6
+        with:
+          name: react-build-${{ github.sha }}
+          path: dist/
+          retention-days: 7
+
+
+  deploy_dev:
+    needs: build
+    if: github.ref_name == 'dev'
+    runs-on: [self-hosted, wls]
+
+    environment:
+      name: development
+    
+    steps:
+      - name: Descargar artefacto
+        uses: actions/download-artifact@v6
+        with:
+          name: react-build-${{ github.sha }}
+          path: dist/
+
+      - name: Desplegar en QA
+        run: |
+          echo "Desplegando el proyecto en QA"
+          echo "Limpiando la carpeta de despliegue"
+          rm -rf /var/www/html/wsl_clase-2026-02-dev
+          echo "Creando la carpeta de despliegue"
+          mkdir -p /var/www/html/wsl_clase-2026-02-dev
+          echo "Copiando archivos a la carpeta de despliegue"
+          cp -a dist/. /var/www/html/wsl_clase-2026-02-dev
+          echo "Despliegue completado"
+
+
+
+  deploy_main:
+    needs: build
+    if: github.ref_name == 'main'
+    runs-on: [self-hosted, wls]
+
+    environment:
+      name: development
+    
+    steps:
+      - name: Descargar artefacto
+        uses: actions/download-artifact@v6
+        with:
+          name: react-build-${{ github.sha }}
+          path: dist/
+
+      - name: Desplegar en Produccion
+        run: |
+          echo "Desplegando el proyecto en Produccion"
+          echo "Limpiando la carpeta de despliegue"
+          rm -rf /var/www/html/wsl_clase-2026-02
+          echo "Creando la carpeta de despliegue"
+          mkdir -p /var/www/html/wsl_clase-2026-02
+          echo "Copiando archivos a la carpeta de despliegue"
+          cp -a dist/. /var/www/html/wsl_clase-2026-02
+          echo "Despliegue completado"
+    
+
+
+
+
+  version:
+    needs: deploy_main
+    if: github.ref_name == 'main'
+    runs-on: [self-hosted, wls]
+
+    steps:
+    - name: Descargar repositorio
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Crear nueva version
+      run: |
+        echo "Buscando última versión..."
+        git fetch --tags
+        LAST_TAG=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' \ --sort=-v:refname | head -n 1)
+
+        echo "Último tag encontrado: $LAST_TAG"
+        if [ -z "$LAST_TAG" ]; then
+          NEW_TAG="v1.0.0"
+        else
+          VERSION=${LAST_TAG#v}
+
+          MAJOR=$(echo "$VERSION" | cut -d. -f1) 
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+          PATCH=$(echo "$VERSION" | cut -d. -f3)
+
+          PATCH=$((PATCH + 1))
+
+          NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+
+        fi
+
+        echo "Nueva versión: $NEW_TAG"
+
+    
+        git config user.name "GitHub Actions"
+        git config user.email "github-actions@localhost"
+
+        git tag -a "$NEW_TAG" "${{ github.sha }}" \ -m "Version $NEW_TAG"
+
+    
+        git push origin "$NEW_TAG"
+
+        echo "Tag $NEW_TAG creado correctamente"
+     
+
