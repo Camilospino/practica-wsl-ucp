@@ -15,7 +15,7 @@ env:
 jobs: 
 
   validate: 
-    runs-on: [self-hosted, wls]
+    runs-on: [self-hosted]
 
     steps:
       - name: Validando el proyecto
