@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 env:
-  NODE_ENV: "production"
+  NODE_ENV: production
 
 jobs: 
 
