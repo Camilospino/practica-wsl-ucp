@@ -12,32 +12,34 @@ permissions:
 env:
   NODE_ENV: "production"
 
-validate:
-  runs-on: [self-hosted, wls]
+jobs: 
 
-  steps:
-    - name: Validando el proyecto
-      uses: actions/checkout@v6
-      
-    - name: Configurando Node.js
-      uses: actions/setup-node@v6
-      with:
-        node-version: '20'
-        cache: 'npm'
+  validate: 
+    runs-on: [self-hosted, wls]
 
-    - name: Validar herramientas  
-      run: |
-        echo "Validando el proyecto"
+    steps:
+      - name: Validando el proyecto
+        uses: actions/checkout@v6
+        
+      - name: Configurando Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
 
-        echo "Version de Node.js"
-        node --version
+      - name: Validar herramientas  
+        run: |
+          echo "Validando el proyecto"
 
-        echo "Version de NPM"
+          echo "Version de Node.js"
+          node --version
 
-        npm --version
+          echo "Version de NPM"
 
-    - name: Validar construccion
-      run: |
-        echo "Validando que el proyecto se pueda construir"
-        npm run build
+          npm --version
+
+      - name: Validar construccion
+        run: |
+          echo "Validando que el proyecto se pueda construir"
+          npm run build
 
