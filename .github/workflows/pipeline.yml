@@ -144,47 +144,57 @@ jobs:
 
 
   version:
-    needs: deploy_main
-    if: github.ref_name == 'main'
-    runs-on: [self-hosted]
+  needs: deploy_main
 
-    steps:
+  if: github.ref_name == 'main'
+
+  runs-on: [self-hosted]
+
+  steps:
+
     - name: Descargar repositorio
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
     - name: Crear nueva version
       run: |
         echo "Buscando última versión..."
+
+        # Traer todos los tags existentes
         git fetch --tags
-        LAST_TAG=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' \ --sort=-v:refname | head -n 1)
+
+        # Obtener último tag con formato vX.Y.Z
+        LAST_TAG=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1)
 
         echo "Último tag encontrado: $LAST_TAG"
+
+        # Si no existe ningún tag comenzamos en v1.0.0
         if [ -z "$LAST_TAG" ]; then
           NEW_TAG="v1.0.0"
         else
           VERSION=${LAST_TAG#v}
 
-          MAJOR=$(echo "$VERSION" | cut -d. -f1) 
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
           MINOR=$(echo "$VERSION" | cut -d. -f2)
           PATCH=$(echo "$VERSION" | cut -d. -f3)
 
           PATCH=$((PATCH + 1))
 
           NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
-
         fi
 
         echo "Nueva versión: $NEW_TAG"
+        echo "Commit que se va a etiquetar: $GITHUB_SHA"
 
-    
+        # Configurar identidad de Git
         git config user.name "GitHub Actions"
-        git config user.email "github-actions@localhost"
+        git config user.email "github-actions@github.com"
 
-        git tag -a "$NEW_TAG" "${{ github.sha }}" \ -m "Version $NEW_TAG"
+        # Crear tag exactamente sobre el commit desplegado
+        git tag -a "$NEW_TAG" "$GITHUB_SHA" -m "Version $NEW_TAG"
 
-    
+        # Enviar tag a GitHub
         git push origin "$NEW_TAG"
 
         echo "Tag $NEW_TAG creado correctamente"
