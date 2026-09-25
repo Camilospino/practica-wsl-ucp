@@ -1,0 +1,43 @@
+name: Pipeline React 
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+permissions:
+  contents: write
+
+env:
+  NODE_ENV: "production"
+
+validate:
+  runs-on: [self-hosted, wls]
+
+  steps:
+    - name: Validando el proyecto
+      uses: actions/checkout@v6
+      
+    - name: Configurando Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Validar herramientas  
+      run: |
+        echo "Validando el proyecto"
+
+        echo "Version de Node.js"
+        node --version
+
+        echo "Version de NPM"
+
+        npm --version
+
+    - name: Validar construccion
+      run: |
+        echo "Validando que el proyecto se pueda construir"
+        npm run build
+
