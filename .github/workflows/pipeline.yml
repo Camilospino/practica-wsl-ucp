@@ -14,29 +14,33 @@ env:
 
 jobs: 
 
-  validate: 
+  validate:
     runs-on: [self-hosted]
 
     steps:
-      - name: Validando el proyecto
+      - name: Descargando repositorio
         uses: actions/checkout@v6
-        
+
       - name: Configurando Node.js
         uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: Validar herramientas  
+      - name: Validar herramientas
         run: |
           echo "Validando el proyecto"
 
-          echo "Version de Node.js"
+          echo "Versión de Node:"
           node --version
 
-          echo "Version de NPM"
-
+          echo "Versión de NPM:"
           npm --version
+
+      - name: Instalar dependencias
+        run: |
+          echo "Instalando dependencias"
+          npm ci --prefer-offline
 
       - name: Validar construccion
         run: |
@@ -45,7 +49,7 @@ jobs:
 
   build:
     needs: validate
-    runs-on: [self-hosted, wls]
+    runs-on: [self-hosted]
 
     steps:
       - name: Descargar repositorio
@@ -84,7 +88,7 @@ jobs:
   deploy_dev:
     needs: build
     if: github.ref_name == 'dev'
-    runs-on: [self-hosted, wls]
+    runs-on: [self-hosted]
 
     environment:
       name: development
@@ -112,7 +116,7 @@ jobs:
   deploy_main:
     needs: build
     if: github.ref_name == 'main'
-    runs-on: [self-hosted, wls]
+    runs-on: [self-hosted]
 
     environment:
       name: development
@@ -142,7 +146,7 @@ jobs:
   version:
     needs: deploy_main
     if: github.ref_name == 'main'
-    runs-on: [self-hosted, wls]
+    runs-on: [self-hosted]
 
     steps:
     - name: Descargar repositorio
